@@ -1,9 +1,12 @@
 import logging
+import os
 import random
+from pathlib import Path
+import urllib
 
 from mopidy import exceptions
 from mopidy.core import listener
-from mopidy.internal import deprecation, validation
+from mopidy.internal import deprecation, validation, minidlna
 from mopidy.internal.models import TracklistState
 from mopidy.models import TlTrack, Track
 
@@ -388,6 +391,7 @@ class TracklistController:
 
         if tracks is None:
             tracks = []
+            uris = [self._translate_uri(uri) for uri in uris]
             track_map = self.core.library.lookup(uris=uris)
             for uri in uris:
                 tracks.extend(track_map[uri])
@@ -624,3 +628,27 @@ class TracklistController:
                 self._next_tlid = max(state.next_tlid, self._next_tlid)
                 self._tl_tracks = list(state.tl_tracks)
                 self._increase_version()
+
+    def _translate_uri(self, uri):
+        """Applies a few hacks to the given track URI, altering it if necessary"""
+        # counteract upmpdcli trick to fool BubbleUPnP
+        if uri.startswith("http://127.0.0.1/"):
+            return uri[len("http://127.0.0.1/"):]
+        # lookup in minidlna database
+        elif self._valid_minidlna_config() and uri.startswith(self.core._config["core"]["minidlna_base_url"]):
+            # /media/music/misc/Takeshi Furukawa - Planet of Lana (Original Soundtrack)/10 - Horizons.mp3
+            # local:track:misc/Takeshi%20Furukawa%20-%20Planet%20of%20Lana%20%28Original%20Soundtrack%29/10%20-%20Horizons.mp3
+            media_filename = minidlna.minidlna_lookup_path_by_url(self.core._get_data_dir(), uri)
+            logger.debug('translating minidlna: %s -> %s', uri, media_filename)
+            if media_filename:
+                media_path = Path(os.fsdecode(media_filename)).relative_to(self.core._config["core"]["minidlna_base_root"])
+                logger.debug('translated minidlna: %s', media_path)
+                return 'local:track:' + urllib.parse.quote(bytes(media_path))
+            else:
+                return uri
+        else:
+            return uri
+
+    def _valid_minidlna_config(self):
+        return (self.core._config["core"]["minidlna_base_url"] and
+                self.core._config["core"]["minidlna_base_root"])
