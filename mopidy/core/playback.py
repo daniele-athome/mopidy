@@ -38,8 +38,7 @@ class PlaybackController:
     def _get_backend(self, tl_track):
         if tl_track is None:
             return None
-        uri_scheme = urllib.parse.urlparse(tl_track.track.uri).scheme
-        return self.backends.with_playback.get(uri_scheme, None)
+        return self.backends.with_playback.get(tl_track.track.uri, None)
 
     def get_current_tl_track(self):
         """Get the currently playing or selected track.

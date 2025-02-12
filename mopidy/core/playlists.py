@@ -95,8 +95,7 @@ class PlaylistsController:
         """
         validation.check_uri(uri)
 
-        uri_scheme = urllib.parse.urlparse(uri).scheme
-        backend = self.backends.with_playlists.get(uri_scheme, None)
+        backend = self.backends.with_playlists.get(uri, None)
 
         if not backend:
             return None
@@ -160,8 +159,7 @@ class PlaylistsController:
         """
         validation.check_uri(uri)
 
-        uri_scheme = urllib.parse.urlparse(uri).scheme
-        backend = self.backends.with_playlists.get(uri_scheme, None)
+        backend = self.backends.with_playlists.get(uri, None)
         if not backend:
             return False
 
@@ -188,8 +186,7 @@ class PlaylistsController:
         :type uri: string
         :rtype: :class:`mopidy.models.Playlist` or :class:`None`
         """
-        uri_scheme = urllib.parse.urlparse(uri).scheme
-        backend = self.backends.with_playlists.get(uri_scheme, None)
+        backend = self.backends.with_playlists.get(uri, None)
         if not backend:
             return None
 
@@ -262,8 +259,7 @@ class PlaylistsController:
         if playlist.uri is None:
             return  # TODO: log this problem?
 
-        uri_scheme = urllib.parse.urlparse(playlist.uri).scheme
-        backend = self.backends.with_playlists.get(uri_scheme, None)
+        backend = self.backends.with_playlists.get(playlist.uri, None)
         if not backend:
             return None
 

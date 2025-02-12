@@ -1,4 +1,3 @@
-import collections
 import itertools
 import logging
 
@@ -14,7 +13,7 @@ from mopidy.core.mixer import MixerController
 from mopidy.core.playback import PlaybackController
 from mopidy.core.playlists import PlaylistsController
 from mopidy.core.tracklist import TracklistController
-from mopidy.internal import path, storage, validation, versioning
+from mopidy.internal import contrib, path, storage, validation, versioning
 from mopidy.internal.models import CoreState
 
 logger = logging.getLogger(__name__)
@@ -71,7 +70,8 @@ class Core(
         futures = [b.uri_schemes for b in self.backends]
         results = pykka.get_all(futures)
         uri_schemes = itertools.chain(*results)
-        return sorted(uri_schemes)
+        # omit schemes with slash inside to not break some web app
+        return sorted(filter(lambda scheme: '/' not in scheme, uri_schemes))
 
     def get_version(self):
         """Get version of the Mopidy core API"""
@@ -235,10 +235,10 @@ class Backends(list):
     def __init__(self, backends):
         super().__init__(backends)
 
-        self.with_library = collections.OrderedDict()
-        self.with_library_browse = collections.OrderedDict()
-        self.with_playback = collections.OrderedDict()
-        self.with_playlists = collections.OrderedDict()
+        self.with_library = contrib.PrefixDict()
+        self.with_library_browse = contrib.PrefixDict()
+        self.with_playback = contrib.PrefixDict()
+        self.with_playlists = contrib.PrefixDict()
 
         backends_by_scheme = {}
 

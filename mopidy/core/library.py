@@ -36,8 +36,7 @@ class LibraryController:
         self.core = core
 
     def _get_backend(self, uri):
-        uri_scheme = urllib.parse.urlparse(uri).scheme
-        return self.backends.with_library.get(uri_scheme, None)
+        return self.backends.with_library.get(uri, None)
 
     def _get_backends_to_uris(self, uris):
         if uris:
@@ -104,8 +103,7 @@ class LibraryController:
         return sorted(directories, key=operator.attrgetter("name"))
 
     def _browse(self, uri):
-        scheme = urllib.parse.urlparse(uri).scheme
-        backend = self.backends.with_library_browse.get(scheme)
+        backend = self.backends.with_library_browse.get(uri)
 
         if not backend:
             return []
