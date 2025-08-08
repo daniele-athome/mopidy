@@ -184,6 +184,17 @@ def _query_seekable(pipeline):
     pipeline.query(query)
     return query.parse_seeking()[1]
 
+def _get_structure_name(struct: Gst.Structure) -> str:
+    # gstreamer 1.25.0 to 1.26.2 (inclusive) broke the accessing
+    # `caps.get_structure(0).get_name()`, but allow wrapping the
+    # object in a context manager. with gstreamer 1.24.x one can
+    # not use the structure as a context manager at all. Fixed in
+    # version 1.26.3 where both methods are supported.
+    try:
+        return struct.get_name()
+    except AttributeError:
+        with struct as _struct:  # type: ignore[reportGeneralTypeIssues]
+            return _struct.get_name()
 
 def _process(pipeline, timeout_ms):
     bus = pipeline.get_bus()
@@ -220,8 +231,8 @@ def _process(pipeline, timeout_ms):
             if GstPbutils.is_missing_plugin_message(msg):
                 missing_message = msg
         elif msg.type == Gst.MessageType.APPLICATION:
-            if msg.get_structure().get_name() == "have-type":
-                mime = msg.get_structure().get_value("caps").get_name()
+            if _get_structure_name(msg.get_structure()) == "have-type":
+                mime = _get_structure_name(msg.get_structure().get_value("caps"))
                 if mime and (
                     mime.startswith("text/") or mime == "application/xml"
                 ):
@@ -232,7 +243,7 @@ def _process(pipeline, timeout_ms):
             error, _debug = msg.parse_error()
             if missing_message and not mime:
                 caps = missing_message.get_structure().get_value("detail")
-                mime = caps.get_structure(0).get_name()
+                mime = _get_structure_name(caps.get_structure(0))
                 return tags, mime, have_audio, duration
             raise exceptions.ScannerError(str(error))
         elif msg.type == Gst.MessageType.EOS:
